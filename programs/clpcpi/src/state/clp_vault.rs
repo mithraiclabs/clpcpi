@@ -96,9 +96,25 @@ pub struct ClpVault {
 impl ClpVault {
     pub const LEN: usize = std::mem::size_of::<ClpVault>();
 
+    /// Create a ClpVault from bytes. Useful when you want to ignore the discriminator, such as when
+    /// using an UncheckedAccount. Typically follows:
+    /// ```ignore
+    /// let clp_data = &ctx.accounts.clp_vault.try_borrow_data()?[..][8..];
+    /// ```
+    /// 
     /// Note: should panic here if a CLP-Vault-program-owned acc is passed that is not a clp vault.
     pub fn clp_vault_from_bytes(v: &[u8]) -> &ClpVault{
         bytemuck::from_bytes(v)
+    }
+
+    /// Mutable version of `clp_vault_from_bytes`. Typically follows: 
+    /// ```ignore
+    /// let clp_data: &mut [u8] = &mut ctx.accounts.clp_vault.data.borrow_mut()[..][8..];
+    /// ````
+    /// 
+    /// Note: should panic here if a CLP-Vault-program-owned acc is passed that is not a clp vault.
+    pub fn clp_vault_from_bytes_mut(v: &mut [u8]) -> &mut ClpVault {
+        bytemuck::from_bytes_mut(v)
     }
 }
 
