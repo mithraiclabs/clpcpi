@@ -1,0 +1,20 @@
+[features]
+seeds = false
+skip-lint = false
+
+[programs.localnet]
+clpcpi = "GugujEk6ZMSzyJLBnLQ9DDs14xt9BW6F9hjQwSThf2XY"
+
+[programs.devnet]
+psylend_cpi = "GugujEk6ZMSzyJLBnLQ9DDs14xt9BW6F9hjQwSThf2XY"
+clp_vault = { address = "ArmN3Av2boBg8pkkeCK9UuCN9zSUVc2UQg1qR2sKwm8d", idl = "./idls/clp_vault.json"}
+
+[registry]
+url = "TBD"
+
+[provider]
+cluster = "devnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"

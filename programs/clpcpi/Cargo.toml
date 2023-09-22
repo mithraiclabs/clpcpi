@@ -1,0 +1,27 @@
+[package]
+name = "clpcpi"
+version = "0.1.0"
+description = "Concentrated Liquidity Provider Vault (CLP) Vault CPI struct reference and CPI examples."
+edition = "2021"
+readme = "../../README.md"
+authors = ["PsyOptions <contact@psyoptions.io>"]
+license = "AGPL-3.0-or-later"
+keywords = ["clpvault", "psyoptions", "psyfi", "solana", "anchor"]
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "clpcpi"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+localnet = []
+devnet-deploy = []
+
+[dependencies]
+anchor-lang = "0.28.0"
+anchor-spl = "0.28.0"
+bytemuck = { version = "1.7", features = ["derive"] }
