@@ -58,16 +58,31 @@ async fn main() {
         CommitmentConfig::processed(),
     );
 
-    info!("Hello, world! {}", config.rpc_url);
     // Load all the vaults
-    info!("Loading vaults. Align {}", align_of::<ClpVault>());
     let vaults = load_all_vaults(&client).await;
     // Filter the vaults to only those with jitoSOL (and Orca owned pools)
-    let jito_vaults: Vec<(Pubkey, ClpVault)> = vaults.into_iter().filter(|(key, vault)| {
-        return vault.token_mint_a.eq(&jito_sol_mint) || vault.token_mint_b.eq(&jito_sol_mint)
-    }).collect();
+    let mut jito_vaults: Vec<ClpVault> = Vec::new();
+    let mut whirlpool_keys: Vec<Pubkey> = Vec::new();
+    let mut position_keys: Vec<Pubkey> = Vec::new();
+    let mut lp_mint_keys: Vec<Pubkey> = Vec::new();
+    let mut vault_reserve_accounts: Vec<Pubkey> = Vec::new();
+    for (_, vault) in vaults.into_iter(){
+        if vault.token_mint_a.eq(&jito_sol_mint) || vault.token_mint_b.eq(&jito_sol_mint) {
+            jito_vaults.push(vault);
+            whirlpool_keys.push(vault.clp);
+            lp_mint_keys.push(vault.lp_mint);
+            vault_reserve_accounts.push(vault.token_vault_a);
+            vault_reserve_accounts.push(vault.token_vault_b);
+            for vault_position in vault.positions.iter() {
+                if vault_position.position_key.ne(&Pubkey::default()) {
+                    position_keys.push(vault_position.position_key);
+                }
+            }
+        }
+    };
 
-    // TODO: Load all Whirlpools, Positions, and LP mints for the vaults
+    // TODO: Load all Whirlpools, Positions, token accoutns and LP mints for the vaults
+    
     // TODO: Caculate the TVL of each vault amount
     // TODO: Return the amount of jitoSOL denominated liquidity, owned by each LP token
 }
