@@ -9,7 +9,7 @@ pub mod errors;
 use crate::instructions::*;
 //use crate::state::*;
 
-declare_id!("GugujEk6ZMSzyJLBnLQ9DDs14xt9BW6F9hjQwSThf2XY");
+declare_id!("ArmN3Av2boBg8pkkeCK9UuCN9zSUVc2UQg1qR2sKwm8d");
 
 #[program]
 pub mod clpcpi {
