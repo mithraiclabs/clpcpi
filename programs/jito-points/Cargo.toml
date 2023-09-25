@@ -10,3 +10,8 @@ solana-sdk = { version = "1.16" }
 solana-client = { version = "1.16" }
 tokio = "1"
 log = "0.4"
+clap = "3.2"
+anyhow = "1.0"
+toml = "0.5"
+serde = "1"
+simple_logger = "2.3.0"
