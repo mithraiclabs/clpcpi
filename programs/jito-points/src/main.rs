@@ -29,6 +29,8 @@ fn start_logger() {
 #[tokio::main]
 async fn main() {
     start_logger();
+    let jito_sol_mint = Pubkey::try_from("J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn").unwrap();
+
     let matches = Command::new("jito-points")
         .arg(
             Arg::new("config")
@@ -57,19 +59,23 @@ async fn main() {
     );
 
     info!("Hello, world! {}", config.rpc_url);
-    // TODO: Load all the vaults
+    // Load all the vaults
     info!("Loading vaults. Align {}", align_of::<ClpVault>());
-    load_all_vaults(&client).await;
-    // TODO: Filter the vaults to only those with jitoSOL (and Orca owned pools)
+    let vaults = load_all_vaults(&client).await;
+    // Filter the vaults to only those with jitoSOL (and Orca owned pools)
+    let jito_vaults: Vec<(Pubkey, ClpVault)> = vaults.into_iter().filter(|(key, vault)| {
+        return vault.token_mint_a.eq(&jito_sol_mint) || vault.token_mint_b.eq(&jito_sol_mint)
+    }).collect();
+
     // TODO: Load all Whirlpools, Positions, and LP mints for the vaults
     // TODO: Caculate the TVL of each vault amount
     // TODO: Return the amount of jitoSOL denominated liquidity, owned by each LP token
 }
 
-async fn load_all_vaults(client: &anchor_client::Client<Rc<Keypair>>) {
+async fn load_all_vaults(client: &anchor_client::Client<Rc<Keypair>>) -> Vec<(Pubkey, ClpVault)> {
     let program =
         client.program(Pubkey::try_from("ArmN3Av2boBg8pkkeCK9UuCN9zSUVc2UQg1qR2sKwm8d").unwrap()).unwrap();
     let vault_accounts: Vec<(Pubkey, ClpVault)> = program.accounts(vec![]).await.unwrap();
     info!("{} vault_accounts", vault_accounts.len());
-    
+    return vault_accounts;
 }
