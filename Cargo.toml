@@ -2,6 +2,9 @@
 members = [
     "programs/*"
 ]
+exclude = [
+    "programs/jito-points"
+]
 
 [profile.release]
 overflow-checks = true
