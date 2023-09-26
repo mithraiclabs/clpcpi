@@ -1,6 +1,8 @@
 use anchor_lang::prelude::*;
 use bytemuck::{Pod, Zeroable};
 
+use whirlpool::math::{get_amount_delta_a, get_amount_delta_b, sqrt_price_from_tick_index};
+
 /// The maximum number of positions a vault could have. This dictates the space required for 
 /// the CLP Vault. There is a separate constant for limiting active positions. These are 
 /// separate because the max active positions will start at 1 for v1.0.0 of the protocol.
@@ -212,6 +214,38 @@ pub struct Position {
     pub fee_owed_b: u64,               // 8
 
     pub reward_infos: [PositionRewardInfo; NUM_REWARDS], // 72
+}
+
+impl Position {
+  pub fn get_token_liquidity(&self, whirlpool: &Whirlpool) -> TokenRatio {
+    let sqrt_price_lower = sqrt_price_from_tick_index(self.tick_lower_index);
+    let sqrt_price_upper = sqrt_price_from_tick_index(self.tick_upper_index);
+    // bound out-or-range price (sqrt_price_lower <= sqrt_price_current <= sqrt_price_upper)
+    let sqrt_price_current = std::cmp::min(
+        std::cmp::max(whirlpool.sqrt_price, sqrt_price_lower),
+        sqrt_price_upper,
+    );
+
+    let position_amount_a = get_amount_delta_a(
+        sqrt_price_current,
+        sqrt_price_upper,
+        self.liquidity,
+        false,
+    )
+    .unwrap();
+    let position_amount_b = get_amount_delta_b(
+        sqrt_price_lower,
+        sqrt_price_current,
+        self.liquidity,
+        false,
+    )
+    .unwrap();
+
+    TokenRatio {
+      token_a: position_amount_a,
+      token_b: position_amount_b,
+    }
+  }
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy)]

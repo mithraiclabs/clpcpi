@@ -21,3 +21,6 @@ toml = "0.5"
 serde = "1"
 simple_logger = "2.3.0"
 bytemuck = { version = "1.7", features = ["derive"] }
+
+# Used to not re-implement some CLP math
+whirlpool = { git = "https://github.com/orca-so/whirlpools", rev = "f54632f" }

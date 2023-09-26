@@ -1,9 +1,9 @@
 use std::{collections::HashMap, rc::Rc};
 
 use crate::solana_utils::get_many_accounts;
-use accounts::{ClpVault, Position, Whirlpool};
+use accounts::{ClpVault, Position, TokenRatio, Whirlpool};
 use anchor_client::{Client, Cluster};
-use anchor_lang::{prelude::Pubkey, AccountDeserialize, declare_id};
+use anchor_lang::{declare_id, prelude::Pubkey, AccountDeserialize};
 use anchor_spl::{token::Mint, token_interface::TokenAccount};
 use clap::{Arg, Command};
 use log::*;
@@ -38,6 +38,39 @@ impl VaultAccounts {
             positions: vec![],
             lp_mint: None,
         }
+    }
+
+    /// Returns tokenA and tokenB amounts managed by the vault
+    fn caclulate_token_amounts(&self) -> TokenRatio {
+        let mut amount_token_a: u64 = 0;
+        let mut amount_token_b: u64 = 0;
+        let whirlpool = self.whirlpool.as_ref().unwrap();
+        // Add the amounts from the vault reserves
+        for reserve in self.reserves.iter() {
+            if reserve.mint.eq(&self.vault.token_mint_a) {
+                amount_token_a += reserve.amount;
+            } else if reserve.mint.eq(&self.vault.token_mint_b) {
+                amount_token_b += reserve.amount;
+            }
+        }
+        // For each Position add the amounts
+        for position in self.positions.iter() {
+            let amounts = position.get_token_liquidity(whirlpool);
+            amount_token_a += amounts.token_a;
+            amount_token_b += amounts.token_b;
+            // Add fees owed
+            amount_token_a += position.fee_owed_a;
+            amount_token_b += position.fee_owed_b;
+        }
+
+        TokenRatio {
+            token_a: amount_token_a,
+            token_b: amount_token_b,
+        }
+    }
+
+    fn log_jito_sol_per_lp_mint(&self) {
+
     }
 }
 
@@ -129,7 +162,9 @@ async fn main() {
                         let vault_accounts = vault_map.get_mut(vault_key).unwrap();
                         match account_type {
                             AccountType::Whirlpool => {
-                                let whirlpool: Whirlpool = AccountDeserialize::try_deserialize(&mut account.data.as_ref()).unwrap();
+                                let whirlpool: Whirlpool =
+                                    AccountDeserialize::try_deserialize(&mut account.data.as_ref())
+                                        .unwrap();
                                 vault_accounts.whirlpool = Some(whirlpool);
                             }
                             AccountType::Token => {
@@ -139,7 +174,9 @@ async fn main() {
                                 vault_accounts.reserves.push(token_account);
                             }
                             AccountType::Position => {
-                                let position: Position = AccountDeserialize::try_deserialize(&mut account.data.as_ref()).unwrap();
+                                let position: Position =
+                                    AccountDeserialize::try_deserialize(&mut account.data.as_ref())
+                                        .unwrap();
                                 vault_accounts.positions.push(position);
                             }
                             AccountType::Mint => {
@@ -156,8 +193,12 @@ async fn main() {
         },
     )
     .await;
-    // TODO: Caculate the TVL of each vault amount
-    // TODO: Return the amount of jitoSOL denominated liquidity, owned by each LP token
+    for (_, val) in vault_map.into_iter() {
+        // Caculate the TVL of each vault amount
+        val.caclulate_token_amounts();
+        // TODO: Return the amount of jitoSOL denominated liquidity, owned by each LP token
+        
+    }
 }
 
 async fn load_all_vaults(program: &anchor_client::Program<Rc<Keypair>>) -> Vec<(Pubkey, ClpVault)> {
