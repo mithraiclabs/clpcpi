@@ -17,11 +17,11 @@ mod solana_utils;
 
 declare_id!("ArmN3Av2boBg8pkkeCK9UuCN9zSUVc2UQg1qR2sKwm8d");
 
-pub const JITO_SOL_ADDRESS: &str = "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn";
+pub const JITO_SOL_ADDRESS: &str = "So11111111111111111111111111111111111111112";
 
 fn start_logger() {
     simple_logger::SimpleLogger::new()
-        .with_level(LevelFilter::Info)
+        .with_level(LevelFilter::Debug)
         .init()
         .unwrap();
 }
@@ -93,7 +93,6 @@ impl VaultAccounts {
             // No inversion. Divide token B amount by price to normalize to jitoSOL
             total_jito_sol_liquidity += u128::from(token_amounts.token_a);
 
-            // UNCHECKED MATH: review
             let b_u256 = U256::from(token_amounts.token_b) << 128;
             let b_normalized_to_a = b_u256.div(price_256).as_u128();
             debug!("b_normalized_to_a {}", b_normalized_to_a);
