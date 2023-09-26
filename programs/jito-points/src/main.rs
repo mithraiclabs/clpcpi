@@ -97,6 +97,7 @@ impl VaultAccounts {
             let b_u256 = U256::from(token_amounts.token_b) << 128;
             let b_normalized_to_a = b_u256.div(price_256).as_u128();
             debug!("b_normalized_to_a {}", b_normalized_to_a);
+            total_jito_sol_liquidity += b_normalized_to_a;
         } else {
             // Price is inverted, multiply token A amount by current price to normalize A to jitoSOL amount
             total_jito_sol_liquidity += u128::from(token_amounts.token_b);
