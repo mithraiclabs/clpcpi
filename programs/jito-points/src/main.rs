@@ -21,7 +21,7 @@ pub const JITO_SOL_ADDRESS: &str = "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn
 
 fn start_logger() {
     simple_logger::SimpleLogger::new()
-        .with_level(LevelFilter::Debug)
+        .with_level(LevelFilter::Info)
         .init()
         .unwrap();
 }
@@ -108,7 +108,7 @@ impl VaultAccounts {
             debug!("a_normalized_to_b {}", a_normalized_to_b);
             total_jito_sol_liquidity += a_normalized_to_b.as_u128();
         }
-        debug!(
+        info!(
             "Totals:\n\
             total_a: {}\n\
             total_b: {}\n\
