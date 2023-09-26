@@ -114,7 +114,7 @@ async fn main() {
         }
     }
 
-    // TODO: Load all Whirlpools, Positions, token accoutns and LP mints for the vaults
+    // Load all Whirlpools, Positions, token accoutns and LP mints for the vaults
     get_many_accounts(
         &program.async_rpc(),
         keys.as_ref(),
@@ -129,7 +129,8 @@ async fn main() {
                         let vault_accounts = vault_map.get_mut(vault_key).unwrap();
                         match account_type {
                             AccountType::Whirlpool => {
-                                // let whirlpool: Whirlpool = AccountDeserialize::try_deserialize(&mut account.data.as_ref()).unwrap();
+                                let whirlpool: Whirlpool = AccountDeserialize::try_deserialize(&mut account.data.as_ref()).unwrap();
+                                vault_accounts.whirlpool = Some(whirlpool);
                             }
                             AccountType::Token => {
                                 let token_account: TokenAccount =
@@ -138,7 +139,8 @@ async fn main() {
                                 vault_accounts.reserves.push(token_account);
                             }
                             AccountType::Position => {
-                                // let position: Position = AccountDeserialize::try_deserialize(&mut account.data.as_ref()).unwrap();
+                                let position: Position = AccountDeserialize::try_deserialize(&mut account.data.as_ref()).unwrap();
+                                vault_accounts.positions.push(position);
                             }
                             AccountType::Mint => {
                                 let lp_mint: Mint =

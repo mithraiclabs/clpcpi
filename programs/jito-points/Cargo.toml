@@ -20,3 +20,4 @@ anyhow = "1.0"
 toml = "0.5"
 serde = "1"
 simple_logger = "2.3.0"
+bytemuck = { version = "1.7", features = ["derive"] }

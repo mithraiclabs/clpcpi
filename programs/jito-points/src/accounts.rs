@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-
+use bytemuck::{Pod, Zeroable};
 
 /// The maximum number of positions a vault could have. This dictates the space required for 
 /// the CLP Vault. There is a separate constant for limiting active positions. These are 
@@ -7,7 +7,7 @@ use anchor_lang::prelude::*;
 pub const MAX_POSITIONS: usize = 5;
 
 
-#[account]
+#[account(zero_copy)]
 pub struct ClpVault {
   pub bump_seed: u8,
   _padding0: [u8; 15],
@@ -82,7 +82,10 @@ pub enum StrategyType {
     StableSlowlyDiverging = 3,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy)]
+unsafe impl Zeroable for StrategyType {}
+unsafe impl Pod for StrategyType {}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Default, Zeroable, Pod)]
 #[repr(C)]
 pub struct VaultPosition {
     /// The underlying CLP position.
@@ -103,7 +106,7 @@ pub struct VaultPosition {
     _reserve7: [u8; 32],
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Default, Zeroable, Pod)]
 #[repr(C)]
 pub struct VaultRatioCache {
   /// Total amount of tokenA managed by the vault
@@ -116,7 +119,7 @@ pub struct VaultRatioCache {
   pub cached_at: i64,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Default, Zeroable, Pod)]
 #[repr(C)]
 pub struct TokenRatio {
     /// The amount of token a required for the initial deposit
@@ -131,7 +134,7 @@ pub struct TokenRatio {
 // Number of rewards supported by Whirlpools
 pub const NUM_REWARDS: usize = 3;
 
-#[derive(AnchorDeserialize, AnchorSerialize)]
+#[account]
 pub struct Whirlpool {
     pub whirlpools_config: Pubkey, // 32
     pub whirlpool_bump: [u8; 1],   // 1
@@ -178,7 +181,7 @@ pub struct Whirlpool {
 /// These values are used in conjunction with `PositionRewardInfo`, `Tick.reward_growths_outside`,
 /// and `Whirlpool.reward_last_updated_timestamp` to determine how many rewards are earned by open
 /// positions.
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy)]
 pub struct WhirlpoolRewardInfo {
     /// Reward token mint.
     pub mint: Pubkey,
@@ -193,7 +196,7 @@ pub struct WhirlpoolRewardInfo {
     pub growth_global_x64: u128,
 }
 
-#[derive(AnchorDeserialize, AnchorSerialize)]
+#[account]
 pub struct Position {
     pub whirlpool: Pubkey,     // 32
     pub position_mint: Pubkey, // 32
@@ -211,7 +214,7 @@ pub struct Position {
     pub reward_infos: [PositionRewardInfo; NUM_REWARDS], // 72
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy)]
 pub struct PositionRewardInfo {
     // Q64.64
     pub growth_inside_checkpoint: u128,
