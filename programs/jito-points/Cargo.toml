@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 anchor-lang = { version = "0.28.0" }
 anchor-spl = { version = "0.28.0" }
+anchor-syn = { version = "0.28.0", features = ["hash"] }
 anchor-client = { version = "0.28.0", features = ["async"] }
 solana-sdk = { version = "1.16" }
 solana-client = { version = "1.16" }
@@ -19,6 +20,3 @@ anyhow = "1.0"
 toml = "0.5"
 serde = "1"
 simple_logger = "2.3.0"
-
-clpcpi = { path="../clpcpi", features = ["no-entrypoint"]}
-whirlpool = { git = "https://github.com/orca-so/whirlpools", rev = "f54632f", features = ["cpi"] }

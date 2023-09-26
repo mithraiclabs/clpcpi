@@ -1,17 +1,19 @@
 use std::{collections::HashMap, rc::Rc};
 
 use crate::solana_utils::get_many_accounts;
+use accounts::{ClpVault, Position, Whirlpool};
 use anchor_client::{Client, Cluster};
-use anchor_lang::{prelude::Pubkey, AccountDeserialize};
+use anchor_lang::{prelude::Pubkey, AccountDeserialize, declare_id};
 use anchor_spl::{token::Mint, token_interface::TokenAccount};
 use clap::{Arg, Command};
-use clpcpi::state::ClpVault;
 use log::*;
 use solana_sdk::{commitment_config::CommitmentConfig, signature::Keypair};
-use whirlpool::state::{Position, Whirlpool};
 
+mod accounts;
 mod config;
 mod solana_utils;
+
+declare_id!("ArmN3Av2boBg8pkkeCK9UuCN9zSUVc2UQg1qR2sKwm8d");
 
 fn start_logger() {
     simple_logger::SimpleLogger::new()
@@ -84,15 +86,13 @@ async fn main() {
         .unwrap();
 
     // Load all the vaults
-    let vaults = load_all_vaults(&client).await;
+    let vaults = load_all_vaults(&program).await;
     let mut vault_map: HashMap<Pubkey, VaultAccounts> = HashMap::new();
     // Filter the vaults to only those with jitoSOL (and Orca owned pools)
     let mut key_vault_type_map: KeyVaultMap = HashMap::new();
     let mut keys: Vec<Pubkey> = Vec::new();
     for (vault_key, vault) in vaults.into_iter() {
         if vault.token_mint_a.eq(&jito_sol_mint) || vault.token_mint_b.eq(&jito_sol_mint) {
-            vault_map.insert(vault_key, VaultAccounts::new(vault));
-
             keys.push(vault.clp);
             key_vault_type_map.insert(vault.clp, (vault_key, AccountType::Whirlpool));
             keys.push(vault.lp_mint);
@@ -110,6 +110,7 @@ async fn main() {
                     );
                 }
             }
+            vault_map.insert(vault_key, VaultAccounts::new(vault));
         }
     }
 
@@ -129,18 +130,22 @@ async fn main() {
                         match account_type {
                             AccountType::Whirlpool => {
                                 // let whirlpool: Whirlpool = AccountDeserialize::try_deserialize(&mut account.data.as_ref()).unwrap();
-                            },
+                            }
                             AccountType::Token => {
-                                let token_account: TokenAccount = AccountDeserialize::try_deserialize(&mut account.data.as_ref()).unwrap();
+                                let token_account: TokenAccount =
+                                    AccountDeserialize::try_deserialize(&mut account.data.as_ref())
+                                        .unwrap();
                                 vault_accounts.reserves.push(token_account);
-                            },
+                            }
                             AccountType::Position => {
                                 // let position: Position = AccountDeserialize::try_deserialize(&mut account.data.as_ref()).unwrap();
-                            },
+                            }
                             AccountType::Mint => {
-                                let lp_mint: Mint = AccountDeserialize::try_deserialize(&mut account.data.as_ref()).unwrap();
+                                let lp_mint: Mint =
+                                    AccountDeserialize::try_deserialize(&mut account.data.as_ref())
+                                        .unwrap();
                                 vault_accounts.lp_mint = Some(lp_mint);
-                            },
+                            }
                         }
                     }
                     None => {}
@@ -153,10 +158,7 @@ async fn main() {
     // TODO: Return the amount of jitoSOL denominated liquidity, owned by each LP token
 }
 
-async fn load_all_vaults(client: &anchor_client::Client<Rc<Keypair>>) -> Vec<(Pubkey, ClpVault)> {
-    let program = client
-        .program(Pubkey::try_from("ArmN3Av2boBg8pkkeCK9UuCN9zSUVc2UQg1qR2sKwm8d").unwrap())
-        .unwrap();
+async fn load_all_vaults(program: &anchor_client::Program<Rc<Keypair>>) -> Vec<(Pubkey, ClpVault)> {
     let vault_accounts: Vec<(Pubkey, ClpVault)> = program.accounts(vec![]).await.unwrap();
     info!("{} vault_accounts", vault_accounts.len());
     return vault_accounts;
