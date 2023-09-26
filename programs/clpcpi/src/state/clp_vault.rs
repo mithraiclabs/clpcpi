@@ -90,7 +90,7 @@ pub struct ClpVault {
     _reserved1: [u8; 128],
     _reserved2: [u8; 64],
     // added to give 16 bit spacing incase u128's are required in the future
-    _reserved_128: [u8; 512],
+    _reserved_128: [u128; 32],
 }
 
 impl ClpVault {
@@ -151,14 +151,7 @@ pub struct VaultPosition {
     /// The address of the upper TickArray
     pub upper_tick: i32,
     _padding1: [u8; 12],
-    _reserve: [u8; 32],
-    _reserve1: [u8; 32],
-    _reserve2: [u8; 32],
-    _reserve3: [u8; 32],
-    _reserve4: [u8; 32],
-    _reserve5: [u8; 32],
-    _reserve6: [u8; 32],
-    _reserve7: [u8; 32],
+    _reserve: [u128; 16],
 }
 
 impl VaultPosition {

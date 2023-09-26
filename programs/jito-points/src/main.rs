@@ -1,4 +1,4 @@
-use std::{collections::HashMap, rc::Rc};
+use std::{collections::HashMap, ops::Div, rc::Rc};
 
 use crate::solana_utils::get_many_accounts;
 use accounts::{ClpVault, Position, TokenRatio, Whirlpool};
@@ -7,17 +7,21 @@ use anchor_lang::{declare_id, prelude::Pubkey, AccountDeserialize};
 use anchor_spl::{token::Mint, token_interface::TokenAccount};
 use clap::{Arg, Command};
 use log::*;
+use math::U256;
 use solana_sdk::{commitment_config::CommitmentConfig, signature::Keypair};
 
 mod accounts;
 mod config;
+mod math;
 mod solana_utils;
 
 declare_id!("ArmN3Av2boBg8pkkeCK9UuCN9zSUVc2UQg1qR2sKwm8d");
 
+pub const JITO_SOL_ADDRESS: &str = "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn";
+
 fn start_logger() {
     simple_logger::SimpleLogger::new()
-        .with_level(LevelFilter::Info)
+        .with_level(LevelFilter::Debug)
         .init()
         .unwrap();
 }
@@ -69,8 +73,49 @@ impl VaultAccounts {
         }
     }
 
-    fn log_jito_sol_per_lp_mint(&self) {
+    /// Returns the total amount vault liquidity in terms of jitoSOL
+    /// 
+    /// NOTE: This function does not validate one of the mints is jitoSOL. That is expected to 
+    /// be done prior.
+    fn total_jito_sol_liquidity(&self) -> u128 {
+        let jito_sol_mint = Pubkey::try_from(JITO_SOL_ADDRESS).unwrap();
+        let mut total_jito_sol_liquidity: u128 = 0;
+        let whirlpool = self.whirlpool.as_ref().unwrap();
+        // Determine whether token A or B is jitoSOL
+        let jito_sol_is_token_a = self.vault.token_mint_a.eq(&jito_sol_mint);
+        // Get liquidity amounts
+        let token_amounts = self.caclulate_token_amounts();
+        let price_256 = U256::from(whirlpool.sqrt_price)
+            .checked_mul(U256::from(whirlpool.sqrt_price))
+            .unwrap();
+        // Convert the non-jitoSOL token to jitoSOL terms
+        if jito_sol_is_token_a {
+            // No inversion. Divide token B amount by price to normalize to jitoSOL
+            total_jito_sol_liquidity += u128::from(token_amounts.token_a);
 
+            // UNCHECKED MATH: review
+            let b_u256 = U256::from(token_amounts.token_b) << 128;
+            let b_normalized_to_a = b_u256.div(price_256).as_u128();
+            debug!("b_normalized_to_a {}", b_normalized_to_a);
+        } else {
+            // Price is inverted, multiply token A amount by current price to normalize A to jitoSOL amount
+            total_jito_sol_liquidity += u128::from(token_amounts.token_b);
+            let a_normalized_to_b = (price_256 >> 64)
+                .checked_mul(U256::from(token_amounts.token_a))
+                .unwrap()
+                >> 64;
+            debug!("a_normalized_to_b {}", a_normalized_to_b);
+            total_jito_sol_liquidity += a_normalized_to_b.as_u128();
+        }
+        debug!(
+            "Totals:\n\
+            total_a: {}\n\
+            total_b: {}\n\
+            total_jito_sol_liquidity: {}
+            ",
+            token_amounts.token_a, token_amounts.token_b, total_jito_sol_liquidity
+        );
+        total_jito_sol_liquidity
     }
 }
 
@@ -86,7 +131,7 @@ type KeyVaultMap = HashMap<Pubkey, (Pubkey, AccountType)>;
 #[tokio::main]
 async fn main() {
     start_logger();
-    let jito_sol_mint = Pubkey::try_from("J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn").unwrap();
+    let jito_sol_mint = Pubkey::try_from(JITO_SOL_ADDRESS).unwrap();
 
     let matches = Command::new("jito-points")
         .arg(
@@ -100,7 +145,7 @@ async fn main() {
         .get_matches();
 
     let file_path = matches.get_one::<String>("config").unwrap();
-    info!("Running jitoPoints with config at {}", file_path);
+    debug!("Running jitoPoints with config at {}", file_path);
     let config = config::Config::from_path(file_path).unwrap();
 
     // Wallet and cluster params.
@@ -195,14 +240,14 @@ async fn main() {
     .await;
     for (_, val) in vault_map.into_iter() {
         // Caculate the TVL of each vault amount
-        val.caclulate_token_amounts();
-        // TODO: Return the amount of jitoSOL denominated liquidity, owned by each LP token
-        
+        let _jito_sol_liquidity = val.total_jito_sol_liquidity();
+        // TODO: determine the number of jitoSOL per LP token. 
+
     }
 }
 
 async fn load_all_vaults(program: &anchor_client::Program<Rc<Keypair>>) -> Vec<(Pubkey, ClpVault)> {
     let vault_accounts: Vec<(Pubkey, ClpVault)> = program.accounts(vec![]).await.unwrap();
-    info!("{} vault_accounts", vault_accounts.len());
+    debug!("{} vault_accounts", vault_accounts.len());
     return vault_accounts;
 }
