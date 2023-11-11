@@ -85,10 +85,24 @@ pub struct ClpVault {
 
     pub ratio_cache: VaultRatioCache,
 
-    // 448
+    /// In some instances, the vault administrator may want fees to count as uncollected even after
+    /// they are swept, for example if fees are processed externally then re-deposited.
+    /// 
+    /// The vault admin can assign this key as the admin that is permitted to indicate to this
+    /// program that those fees have completed their flight and should now count as collected.
+    /// 
+    /// The flight admin can only reduce the balance of fees in flight, it cannot increase them.
+    /// Pubkey default if unused.
+    pub flight_admin: Pubkey,
+    /// Fees that count as uncollected, in native decimals. Only used if flight admin is not default.
+    pub in_flight_a: u64,
+    /// Fees that count as uncollected, in native decimals. Only used if flight admin is not default.
+    pub in_flight_b: u64,
+
+    // 400
     _reserved0: [u8; 256],
     _reserved1: [u8; 128],
-    _reserved2: [u8; 64],
+    _reserved2: [u8; 16],
     // added to give 16 bit spacing incase u128's are required in the future
     _reserved_128: [u128; 32],
 }
