@@ -1,6 +1,6 @@
 [package]
 name = "clpcpi"
-version = "0.1.1"
+version = "0.1.2"
 description = "Concentrated Liquidity Provider Vault (CLP) Vault CPI struct reference and CPI examples."
 edition = "2021"
 readme = "../../README.md"
