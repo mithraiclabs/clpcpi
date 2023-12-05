@@ -85,24 +85,15 @@ pub struct ClpVault {
 
     pub ratio_cache: VaultRatioCache,
 
-    /// In some instances, the vault administrator may want fees to count as uncollected even after
-    /// they are swept, for example if fees are processed externally then re-deposited.
-    /// 
-    /// The vault admin can assign this key as the admin that is permitted to indicate to this
-    /// program that those fees have completed their flight and should now count as collected.
-    /// 
-    /// The flight admin can only reduce the balance of fees in flight, it cannot increase them.
-    /// Pubkey default if unused.
-    pub flight_admin: Pubkey,
-    /// Fees that count as uncollected, in native decimals. Only used if flight admin is not default.
-    pub in_flight_a: u64,
-    /// Fees that count as uncollected, in native decimals. Only used if flight admin is not default.
-    pub in_flight_b: u64,
+    /// Tracks the amount of fees collected in A or B that should be treated as uncollected until
+    /// the respective admin reduces them. This mitigates an attack where a depositor would get to
+    /// omit uncollected fees that are in transit but have not finished being cranked to staking.
+    pub in_flight_fees: InFlightFees,
 
-    // 400
+    // 352
     _reserved0: [u8; 256],
-    _reserved1: [u8; 128],
-    _reserved2: [u8; 16],
+    _reserved1: [u8; 64],
+    _reserved2: [u8; 32],
     // added to give 16 bit spacing incase u128's are required in the future
     _reserved_128: [u128; 32],
 }
@@ -129,6 +120,64 @@ impl ClpVault {
     /// Note: should panic here if a CLP-Vault-program-owned acc is passed that is not a clp vault.
     pub fn clp_vault_from_bytes_mut(v: &mut [u8]) -> &mut ClpVault {
         bytemuck::from_bytes_mut(v)
+    }
+}
+
+#[derive(Debug, Clone, Copy, AnchorDeserialize, AnchorSerialize)]
+#[repr(u8)]
+pub enum FlightType {
+    None,
+    OnlyA,
+    OnlyB,
+    Both,
+}
+
+impl PartialEq for FlightType {
+    fn eq(&self, other: &Self) -> bool {
+        // Use pattern matching to compare the enum variants
+        match (*self as u8, *other as u8) {
+            (a, b) => a == b,
+        }
+    }
+}
+
+impl Eq for FlightType {}
+unsafe impl Zeroable for FlightType {}
+unsafe impl Pod for FlightType {}
+
+/// In some instances, the vault administrator may want fees to count as uncollected even after
+/// they are swept, for example if fees are processed externally then re-deposited.
+///
+/// The vault admin can assign this key as the admin that is permitted to indicate to this
+/// program that those fees have completed their flight and should now count as collected.
+///
+/// The flight admin can only reduce the balance of fees in flight, it cannot increase them.
+/// Pubkey default if unused.
+#[derive(Clone, Copy, AnchorDeserialize, AnchorSerialize, Zeroable, Pod)]
+#[repr(C)]
+pub struct InFlightFees {
+    pub flight_admin_a: Pubkey,
+    pub flight_admin_b: Pubkey,
+    /// Fees that count as uncollected, in native decimals. Only used if flight admin is not default.
+    pub in_flight_a: u64,
+    /// Fees that count as uncollected, in native decimals. Only used if flight admin is not default.
+    pub in_flight_b: u64,
+    /// Does this in-flight fee tracker look at asset, A, B, or, both?
+    pub flight_type: FlightType,
+    // Pad to next multiple of 16
+    _padding1: [u8; 15],
+}
+
+impl Default for InFlightFees {
+    fn default() -> Self {
+        Self {
+            flight_admin_a: Pubkey::default(),
+            flight_admin_b: Pubkey::default(),
+            in_flight_a: 0,
+            in_flight_b: 0,
+            flight_type: FlightType::None,
+            _padding1: [0; 15],
+        }
     }
 }
 
